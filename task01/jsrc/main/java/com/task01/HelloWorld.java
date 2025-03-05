@@ -9,19 +9,38 @@ import java.util.HashMap;
 import java.util.Map;
 
 @LambdaHandler(
-    lambdaName = "hello_world",
-	roleName = "hello_world-role",
-	isPublishVersion = true,
-	aliasName = "${lambdas_alias_name}",
-	logsExpiration = RetentionSetting.SYNDICATE_ALIASES_SPECIFIED
+        lambdaName = "hello_world",
+        roleName = "hello_world-role",
+        isPublishVersion = true,
+        aliasName = "${lambdas_alias_name}",
+        logsExpiration = RetentionSetting.SYNDICATE_ALIASES_SPECIFIED
 )
-public class HelloWorld implements RequestHandler<Object, Map<String, Object>> {
+public class HelloWorld implements RequestHandler<Map<String, Object>, Map<String, Object>> {
 
-	public Map<String, Object> handleRequest(Object request, Context context) {
-		System.out.println("Hello from lambda");
-		Map<String, Object> resultMap = new HashMap<String, Object>();
-		resultMap.put("statusCode", 200);
-		resultMap.put("message", "Hello from Lambda");
-		return resultMap;
-	}
+    @Override
+    public Map<String, Object> handleRequest(Map<String, Object> request, Context context) {
+
+        String path = (String) request.get("path");
+        String method = (String) request.get("httpMethod");
+
+
+        Map<String, Object> response = new HashMap<>();
+
+        if ("/hello".equals(path) && "GET".equals(method)) {
+
+            response.put("statusCode", 200);
+            Map<String, String> body = new HashMap<>();
+            body.put("message", "Hello, world!");
+            response.put("body", body);
+        } else {
+
+            response.put("statusCode", 400);
+            Map<String, String> errorBody = new HashMap<>();
+            errorBody.put("message", "Bad request syntax or unsupported method. " +
+                    String.format("Request path: %s. HTTP method: %s", path, method));
+            response.put("body", errorBody);
+        }
+
+        return response;
+    }
 }
