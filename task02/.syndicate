@@ -1,0 +1,70 @@
+name: task02
+build_projects_mapping:
+  java: jsrc/main/java
+lambdas:
+  hello_world:
+    runtime: java
+locks:
+  modification_lock:
+    last_modification_date: '2025-03-05T14:29:07Z'
+    is_locked: false
+    initiator: chanchal_anand
+events:
+- operation: deploy
+  initiator: chanchal_anand
+  bundle_name: task02_250305.195828
+  deploy_name: task02
+  time_start: '2025-03-05T19:59:01Z'
+  time_end: '2025-03-05T19:59:07Z'
+  duration_sec: 6.042
+  status: succeeded
+  rollback_on_error: false
+- operation: build
+  initiator: chanchal_anand
+  bundle_name: task02_250305.195828
+  time_start: '2025-03-05T19:58:28Z'
+  time_end: '2025-03-05T19:58:47Z'
+  duration_sec: 19.005
+  status: succeeded
+- operation: upload
+  initiator: chanchal_anand
+  bundle_name: task02_250305.195828
+  time_start: '2025-03-05T19:58:37Z'
+  time_end: '2025-03-05T19:58:47Z'
+  duration_sec: 10.037
+  status: succeeded
+- operation: package_meta
+  initiator: chanchal_anand
+  bundle_name: task02_250305.195828
+  time_start: '2025-03-05T19:58:37Z'
+  time_end: '2025-03-05T19:58:37Z'
+  duration_sec: 0.019
+  status: succeeded
+- operation: assemble
+  initiator: chanchal_anand
+  bundle_name: task02_250305.195828
+  time_start: '2025-03-05T19:58:29Z'
+  time_end: '2025-03-05T19:58:37Z'
+  duration_sec: 7.602
+  status: succeeded
+- operation: assemble_java_mvn
+  initiator: chanchal_anand
+  bundle_name: task02_250305.195828
+  time_start: '2025-03-05T19:58:29Z'
+  time_end: '2025-03-05T19:58:37Z'
+  duration_sec: 7.594
+  status: succeeded
+- operation: test
+  initiator: chanchal_anand
+  time_start: '2025-03-05T19:58:29Z'
+  time_end: '2025-03-05T19:58:29Z'
+  duration_sec: 0.001
+  status: succeeded
+latest_deploy:
+  initiator: chanchal_anand
+  bundle_name: task02_250305.195828
+  deploy_name: task02
+  time_start: '2025-03-05T19:59:01Z'
+  time_end: '2025-03-05T19:59:07Z'
+  duration_sec: 6.042
+  is_succeeded: true
