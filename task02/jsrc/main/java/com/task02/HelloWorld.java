@@ -9,38 +9,33 @@ import java.util.HashMap;
 import java.util.Map;
 
 @LambdaHandler(
-    lambdaName = "hello_world",
-	roleName = "hello_world-role",
-	isPublishVersion = true,
-	aliasName = "learn",
-	logsExpiration = RetentionSetting.SYNDICATE_ALIASES_SPECIFIED
+        lambdaName = "hello_world",
+        roleName = "hello_world-role",
+        isPublishVersion = true,
+        aliasName = "${lambdas_alias_name}",
+        logsExpiration = RetentionSetting.SYNDICATE_ALIASES_SPECIFIED
 )
-public class HelloWorld implements RequestHandler<Map<String, Object>, Map<String, Object>> {
+public class HelloWorld implements RequestHandler<Object, Map<String, Object>> {
+    @Override
+    public Map<String, Object> handleRequest(Object request, Context context) {
 
-	@Override
-	public Map<String, Object> handleRequest(Map<String, Object> request, Context context) {
-
-		String path = (String) request.get("path");
-		String method = (String) request.get("httpMethod");
+    Map<String, Object> requestMap = (Map<String, Object>) request;
 
 
-		Map<String, Object> response = new HashMap<>();
+    String path = (String) requestMap.getOrDefault("path", "");
+    String method = (String) requestMap.getOrDefault("httpMethod", "");
 
-		if ("/hello".equals(path) && "GET".equals(method)) {
+    Map<String, Object> response = new HashMap<>();
+        if ("/hello".equals(path) && "GET".equalsIgnoreCase(method)) {
 
-			response.put("statusCode", 200);
-			Map<String, String> body = new HashMap<>();
-			body.put("message", "Hello, world!");
-			response.put("body", body);
-		} else {
+        response.put("statusCode", 200);
+        response.put("message", "Hello from Lambda");
+    } else {
 
-			response.put("statusCode", 400);
-			Map<String, String> errorBody = new HashMap<>();
-			errorBody.put("message", "Bad request syntax or unsupported method. " +
-					String.format("Request path: %s. HTTP method: %s", path, method));
-			response.put("body", errorBody);
-		}
+        response.put("statusCode", 400);
+        response.put("message", "Bad request syntax or unsupported method. Request path: " + path + ". HTTP method: " + method);
+    }
 
-		return response;
-	}
+        return response;
+    }
 }

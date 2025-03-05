@@ -1,15 +1,36 @@
 name: task02
-build_projects_mapping:
-  java: jsrc/main/java
-lambdas:
-  hello_world:
-    runtime: java
 locks:
   modification_lock:
     last_modification_date: '2025-03-05T14:29:07Z'
     is_locked: false
     initiator: chanchal_anand
 events:
+- operation: assemble_java_mvn
+  initiator: chanchal_anand
+  bundle_name: task02_250305.204316
+  time_start: '2025-03-05T20:43:17Z'
+  time_end: '2025-03-05T20:43:22Z'
+  duration_sec: 5.162
+  status: failed
+- operation: test
+  initiator: chanchal_anand
+  time_start: '2025-03-05T20:43:17Z'
+  time_end: '2025-03-05T20:43:17Z'
+  duration_sec: 0.002
+  status: succeeded
+- operation: assemble_java_mvn
+  initiator: chanchal_anand
+  bundle_name: task02_250305.203336
+  time_start: '2025-03-05T20:33:37Z'
+  time_end: '2025-03-05T20:33:42Z'
+  duration_sec: 4.33
+  status: failed
+- operation: test
+  initiator: chanchal_anand
+  time_start: '2025-03-05T20:33:37Z'
+  time_end: '2025-03-05T20:33:37Z'
+  duration_sec: 0.005
+  status: succeeded
 - operation: deploy
   initiator: chanchal_anand
   bundle_name: task02_250305.195828
@@ -68,3 +89,8 @@ latest_deploy:
   time_end: '2025-03-05T19:59:07Z'
   duration_sec: 6.042
   is_succeeded: true
+build_projects_mapping:
+  java: jsrc/main/java
+lambdas:
+  hello_world:
+    runtime: java
