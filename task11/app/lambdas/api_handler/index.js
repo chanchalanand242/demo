@@ -1,5 +1,7 @@
 const AWS = require('aws-sdk');
 const { v4: uuidv4 } = require('uuid');
+
+// Update AWS region
 AWS.config.update({ region: 'us-east-1' });
 
 const cognito = new AWS.CognitoIdentityServiceProvider();
@@ -16,7 +18,6 @@ exports.handler = async (event) => {
     const route = event.resource;
     const method = event.httpMethod;
     const body = event.body ? JSON.parse(event.body) : {};
-    const headers = event.headers || {};
 
     try {
         if (route === "/signup" && method === "POST") {
@@ -43,15 +44,19 @@ exports.handler = async (event) => {
     }
 };
 
+// Signup User
 async function handleSignup(body) {
     const { firstName, lastName, email, password } = body;
 
-    // Check if email format is correct
-    if (!email || !email.includes('@')) {
+    // Validate inputs
+    if (!firstName || !lastName || !email || !password) {
+        return formatResponse(400, { error: "Missing required fields: firstName, lastName, email, password" });
+    }
+    if (!validateEmail(email)) {
         return formatResponse(400, { error: "Invalid email format" });
     }
-    if (!password || password.length < 8) {
-        return formatResponse(400, { error: "Password must be at least 8 characters" });
+    if (!validatePassword(password)) {
+        return formatResponse(400, { error: "Password must be at least 8 characters, with one uppercase, one lowercase, and one number" });
     }
 
     const params = {
@@ -61,8 +66,8 @@ async function handleSignup(body) {
         UserAttributes: [
             { Name: "given_name", Value: firstName },
             { Name: "family_name", Value: lastName },
-            { Name: "email", Value: email }
-        ]
+            { Name: "email", Value: email },
+        ],
     };
 
     try {
@@ -70,11 +75,16 @@ async function handleSignup(body) {
         return formatResponse(200, { message: "User registered successfully" });
     } catch (error) {
         console.error("Signup error: ", error);
-        return formatResponse(400, { error: error.message });
+
+        if (error.code === "UsernameExistsException") {
+            return formatResponse(400, { error: "User with this email already exists" });
+        }
+
+        return formatResponse(500, { error: "Something went wrong during signup. Please try again later." });
     }
 }
 
-
+// Signin User
 async function handleSignin(body) {
     const { email, password } = body;
 
@@ -87,76 +97,36 @@ async function handleSignin(body) {
         ClientId: CLIENT_ID,
         AuthParameters: {
             USERNAME: email,
-            PASSWORD: password
-        }
+            PASSWORD: password,
+        },
     };
 
     try {
         const response = await cognito.initiateAuth(params).promise();
-        return formatResponse(200, { token: response.AuthenticationResult.IdToken });
+        return formatResponse(200, {
+            token: response.AuthenticationResult.IdToken,
+            refreshToken: response.AuthenticationResult.RefreshToken,
+        });
     } catch (error) {
         console.error("Signin error: ", error);
-        return formatResponse(400, { error: "Invalid email or password" });
+
+        if (error.code === "NotAuthorizedException" || error.code === "UserNotFoundException") {
+            return formatResponse(400, { error: "Invalid username or password" });
+        }
+
+        return formatResponse(500, { error: "Signin failed. Please try again later." });
     }
 }
 
-
-async function getTables() {
-    const params = { TableName: TABLES_TABLE };
-    const data = await dynamoDB.scan(params).promise();
-    return formatResponse(200, { tables: data.Items });
+// Common Helper Functions
+function validateEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
 }
 
-async function addTable(body) {
-    const { id, number, places, isVip, minOrder } = body;
-
-    const params = {
-        TableName: TABLES_TABLE,
-        Item: { id, number, places, isVip, minOrder },
-    };
-
-    await dynamoDB.put(params).promise();
-    return formatResponse(200, { id });
-}
-
-async function getTableById(tableId) {
-    const params = {
-        TableName: TABLES_TABLE,
-        Key: { id: tableId },
-    };
-
-    const data = await dynamoDB.get(params).promise();
-    if (!data.Item) {
-        return formatResponse(400, { error: "Table not found" });
-    }
-
-    return formatResponse(200, data.Item);
-}
-
-async function createReservation(body) {
-    const { tableNumber, clientName, phoneNumber, date, slotTimeStart, slotTimeEnd } = body;
-
-    const params = {
-        TableName: RESERVATIONS_TABLE,
-        Item: {
-            id: uuidv4(),
-            tableNumber,
-            clientName,
-            phoneNumber,
-            date,
-            slotTimeStart,
-            slotTimeEnd,
-        },
-    };
-
-    await dynamoDB.put(params).promise();
-    return formatResponse(200, { reservationId: params.Item.id });
-}
-
-async function getReservations() {
-    const params = { TableName: RESERVATIONS_TABLE };
-    const data = await dynamoDB.scan(params).promise();
-    return formatResponse(200, { reservations: data.Items });
+function validatePassword(password) {
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+    return passwordRegex.test(password);
 }
 
 function formatResponse(statusCode, body) {
@@ -164,6 +134,5 @@ function formatResponse(statusCode, body) {
         statusCode,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
-        isBase64Encoded: false,
     };
 }
