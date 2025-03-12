@@ -1,8 +1,8 @@
-const AWS = require('aws-sdk');
-const { v4: uuidv4 } = require('uuid');
+const AWS = require("aws-sdk");
+const { v4: uuidv4 } = require("uuid");
 
 // Update AWS region
-AWS.config.update({ region: 'us-east-1' });
+AWS.config.update({ region: "us-east-1" });
 
 const cognito = new AWS.CognitoIdentityServiceProvider();
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
@@ -18,6 +18,7 @@ exports.handler = async (event) => {
     const route = event.resource;
     const method = event.httpMethod;
     const body = event.body ? JSON.parse(event.body) : {};
+    const headers = event.headers;
 
     try {
         if (route === "/signup" && method === "POST") {
@@ -25,16 +26,16 @@ exports.handler = async (event) => {
         } else if (route === "/signin" && method === "POST") {
             return await handleSignin(body);
         } else if (route === "/tables" && method === "GET") {
-            return await getTables();
+            return await getTables(headers);
         } else if (route === "/tables" && method === "POST") {
-            return await addTable(body);
+            return await addTable(body, headers);
         } else if (route.startsWith("/tables/") && method === "GET") {
             const tableId = route.split("/")[2];
-            return await getTableById(tableId);
+            return await getTableById(tableId, headers);
         } else if (route === "/reservations" && method === "POST") {
-            return await createReservation(body);
+            return await createReservation(body, headers);
         } else if (route === "/reservations" && method === "GET") {
-            return await getReservations();
+            return await getReservations(headers);
         } else {
             return formatResponse(400, { error: "Invalid request" });
         }
@@ -56,7 +57,7 @@ async function handleSignup(body) {
         return formatResponse(400, { error: "Invalid email format" });
     }
     if (!validatePassword(password)) {
-        return formatResponse(400, { error: "Password must be at least 8 characters, with one uppercase, one lowercase, and one number" });
+        return formatResponse(400, { error: "Password must be at least 12 characters, alphanumeric, and include $%^*-_" });
     }
 
     const params = {
@@ -104,8 +105,7 @@ async function handleSignin(body) {
     try {
         const response = await cognito.initiateAuth(params).promise();
         return formatResponse(200, {
-            token: response.AuthenticationResult.IdToken,
-            refreshToken: response.AuthenticationResult.RefreshToken,
+            accessToken: response.AuthenticationResult.IdToken,
         });
     } catch (error) {
         console.error("Signin error: ", error);
@@ -118,14 +118,113 @@ async function handleSignin(body) {
     }
 }
 
-// Common Helper Functions
+// Get all tables
+async function getTables(headers) {
+    const userId = validateToken(headers);
+
+    try {
+        const result = await dynamoDB.scan({ TableName: TABLES_TABLE }).promise();
+        return formatResponse(200, { tables: result.Items });
+    } catch (error) {
+        console.error("Get Tables error: ", error);
+        return formatResponse(500, { error: "Cannot retrieve tables" });
+    }
+}
+
+// Add a new table
+async function addTable(body, headers) {
+    const userId = validateToken(headers);
+
+    const { id, number, places, isVip, minOrder } = body;
+    if (!id || !number || !places || isVip === undefined) {
+        return formatResponse(400, { error: "Missing or invalid fields" });
+    }
+
+    const params = {
+        TableName: TABLES_TABLE,
+        Item: { id, number, places, isVip, minOrder },
+    };
+
+    try {
+        await dynamoDB.put(params).promise();
+        return formatResponse(200, { id });
+    } catch (error) {
+        console.error("Add Table error: ", error);
+        return formatResponse(500, { error: "Cannot add table" });
+    }
+}
+
+// Get table by ID
+async function getTableById(tableId, headers) {
+    const userId = validateToken(headers);
+
+    try {
+        const params = { TableName: TABLES_TABLE, Key: { id: parseInt(tableId) } };
+        const result = await dynamoDB.get(params).promise();
+
+        if (!result.Item) {
+            return formatResponse(400, { error: "Table not found" });
+        }
+
+        return formatResponse(200, result.Item);
+    } catch (error) {
+        console.error("Get Table By ID error: ", error);
+        return formatResponse(500, { error: "Cannot retrieve table" });
+    }
+}
+
+// Create a reservation
+async function createReservation(body, headers) {
+    const userId = validateToken(headers);
+
+    const { tableNumber, clientName, phoneNumber, date, slotTimeStart, slotTimeEnd } = body;
+    if (!tableNumber || !clientName || !phoneNumber || !date || !slotTimeStart || !slotTimeEnd) {
+        return formatResponse(400, { error: "Missing required fields" });
+    }
+
+    const reservationId = uuidv4();
+    const params = {
+        TableName: RESERVATIONS_TABLE,
+        Item: { reservationId, tableNumber, clientName, phoneNumber, date, slotTimeStart, slotTimeEnd },
+    };
+
+    try {
+        await dynamoDB.put(params).promise();
+        return formatResponse(200, { reservationId });
+    } catch (error) {
+        console.error("Create Reservation error: ", error);
+        return formatResponse(500, { error: "Cannot create reservation" });
+    }
+}
+
+// Get all reservations
+async function getReservations(headers) {
+    const userId = validateToken(headers);
+
+    try {
+        const result = await dynamoDB.scan({ TableName: RESERVATIONS_TABLE }).promise();
+        return formatResponse(200, { reservations: result.Items });
+    } catch (error) {
+        console.error("Get Reservations error: ", error);
+        return formatResponse(500, { error: "Cannot retrieve reservations" });
+    }
+}
+
+// Token validation
+function validateToken(headers) {
+    const token = headers.Authorization?.split(" ")[1];
+    if (!token) throw new Error("Missing access token");
+    return token; // Assuming token validation is verified externally
+}
+
+// Helper functions
 function validateEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
 }
 
 function validatePassword(password) {
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+    const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[$%^*-_]).{12,}$/;
     return passwordRegex.test(password);
 }
 
