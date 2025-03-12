@@ -18,7 +18,6 @@
   "env_variables": {
     "Tables": "${tables_table}",
     "Reservations": "${reservations_table}",
-    "simple-booking-userpool": "${booking_userpool}",
     "cup_id": {
       "resource_name": "${booking_userpool}",
       "resource_type": "cognito_idp",
