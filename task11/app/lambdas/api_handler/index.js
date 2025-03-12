@@ -1,6 +1,5 @@
 const AWS = require('aws-sdk');
 const { v4: uuidv4 } = require('uuid');
-
 AWS.config.update({ region: 'us-east-1' });
 
 const cognito = new AWS.CognitoIdentityServiceProvider();
@@ -47,37 +46,60 @@ exports.handler = async (event) => {
 async function handleSignup(body) {
     const { firstName, lastName, email, password } = body;
 
+    // Check if email format is correct
+    if (!email || !email.includes('@')) {
+        return formatResponse(400, { error: "Invalid email format" });
+    }
+    if (!password || password.length < 8) {
+        return formatResponse(400, { error: "Password must be at least 8 characters" });
+    }
+
     const params = {
-        UserPoolId: USER_POOL_ID,
+        ClientId: CLIENT_ID,
         Username: email,
-        TemporaryPassword: password,
+        Password: password,
         UserAttributes: [
             { Name: "given_name", Value: firstName },
             { Name: "family_name", Value: lastName },
-            { Name: "email", Value: email },
-        ],
+            { Name: "email", Value: email }
+        ]
     };
 
-    await cognito.adminCreateUser(params).promise();
-    return formatResponse(200, { message: "User registered successfully" });
+    try {
+        await cognito.signUp(params).promise();
+        return formatResponse(200, { message: "User registered successfully" });
+    } catch (error) {
+        console.error("Signup error: ", error);
+        return formatResponse(400, { error: error.message });
+    }
 }
+
 
 async function handleSignin(body) {
     const { email, password } = body;
 
+    if (!email || !password) {
+        return formatResponse(400, { error: "Email and password are required" });
+    }
+
     const params = {
-        AuthFlow: "ADMIN_USER_PASSWORD_AUTH",
+        AuthFlow: "USER_PASSWORD_AUTH",
         ClientId: CLIENT_ID,
-        UserPoolId: USER_POOL_ID,
         AuthParameters: {
             USERNAME: email,
-            PASSWORD: password,
-        },
+            PASSWORD: password
+        }
     };
 
-    const response = await cognito.adminInitiateAuth(params).promise();
-    return formatResponse(200, { accessToken: response.AuthenticationResult.IdToken });
+    try {
+        const response = await cognito.initiateAuth(params).promise();
+        return formatResponse(200, { token: response.AuthenticationResult.IdToken });
+    } catch (error) {
+        console.error("Signin error: ", error);
+        return formatResponse(400, { error: "Invalid email or password" });
+    }
 }
+
 
 async function getTables() {
     const params = { TableName: TABLES_TABLE };
@@ -145,4 +167,3 @@ function formatResponse(statusCode, body) {
         isBase64Encoded: false,
     };
 }
-
