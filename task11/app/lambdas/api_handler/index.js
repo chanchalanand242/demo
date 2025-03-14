@@ -116,34 +116,33 @@ async function handleSignup(event) {
 async function handleSignin(event) {
   try {
     const { email, password } = JSON.parse(event.body);
-    const getUserParams = {
-      UserPoolId: USER_POOL_ID,
-      Filter: `email = "${email}"`,
-      Limit: 1
-    };
-    const users = await cognito.listUsers(getUserParams).promise();
-    if (!users.Users.length) {
-      return formatResponse(400, { error: "User does not exist." });
-    }
-    const username = users.Users[0].Username;
+    console.log("Received signin request for:", email);
     const params = {
       AuthFlow: "ADMIN_USER_PASSWORD_AUTH",
       UserPoolId: USER_POOL_ID,
       ClientId: CLIENT_ID,
       AuthParameters: {
-        USERNAME: username,
+        USERNAME: email,
         PASSWORD: password
       }
     };
     const authResponse = await cognito.adminInitiateAuth(params).promise();
+    console.log("Auth Response:", JSON.stringify(authResponse));
+    if (!authResponse.AuthenticationResult) {
+      console.error("AuthenticationResult is missing in response.");
+      return formatResponse(400, { error: "Authentication failed. Try again." });
+    }
     return formatResponse(200, {
-      accessToken: authResponse.AuthenticationResult?.IdToken
+      idToken: authResponse.AuthenticationResult.IdToken // ✅ Corrected key name
     });
   } catch (error) {
-    return formatResponse(400, { error: error.message });
+    console.error("Sign-in error:", error);
+    if (error.code === "NotAuthorizedException") {
+      return formatResponse(400, { error: "Invalid email or password." });
+    }
+    return formatResponse(400, { error: "Authentication failed." });
   }
 }
-
 // Table View
 async function handleGetTables(event) {
   const username = getUsernameFromToken(event);
