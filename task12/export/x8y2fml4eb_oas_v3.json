@@ -332,10 +332,72 @@
         }
       }
     },
-    "/signin": {
-      "post": {
-        "summary": "User Sign-In",
-        "description": "User sign-in endpoint to authenticate using username and password.",
+    "/tables/{tableId}": {
+      "get": {
+        "summary": "Get Table by ID",
+        "description": "Fetches details of a specific table by its ID.",
+        "parameters": [
+          {
+            "name": "tableId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "200 response",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Empty"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "authorizer": []
+          }
+        ],
+        "x-amazon-apigateway-integration": {
+          "httpMethod": "GET",
+          "uri": "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:376129861747:function:api_handler/invocations",
+          "responses": {
+            "default": {
+              "statusCode": "200",
+              "responseParameters": {
+                "method.response.header.Access-Control-Allow-Origin": "'*'"
+              }
+            }
+          },
+          "passthroughBehavior": "when_no_match",
+          "type": "aws_proxy"
+        }
+      },
+      "put": {
+        "summary": "Update Table by ID",
+        "description": "Updates an existing table by its ID.",
+        "parameters": [
+          {
+            "name": "tableId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -343,14 +405,13 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "username": {
+                  "table_name": {
                     "type": "string"
                   },
-                  "password": {
-                    "type": "string"
+                  "capacity": {
+                    "type": "integer"
                   }
-                },
-                "required": ["username", "password"]
+                }
               }
             }
           }
@@ -374,8 +435,13 @@
             }
           }
         },
+        "security": [
+          {
+            "authorizer": []
+          }
+        ],
         "x-amazon-apigateway-integration": {
-          "httpMethod": "POST",
+          "httpMethod": "PUT",
           "uri": "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:376129861747:function:api_handler/invocations",
           "responses": {
             "default": {
@@ -388,34 +454,20 @@
           "passthroughBehavior": "when_no_match",
           "type": "aws_proxy"
         }
-      }
-    },
-    "/signup": {
-      "post": {
-        "summary": "User Sign-Up",
-        "description": "User registration endpoint that accepts username, email, and password for creating a new account.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "username": {
-                    "type": "string"
-                  },
-                  "email": {
-                    "type": "string"
-                  },
-                  "password": {
-                    "type": "string"
-                  }
-                },
-                "required": ["username", "email", "password"]
-              }
+      },
+      "delete": {
+        "summary": "Delete Table by ID",
+        "description": "Deletes a specific table by its ID.",
+        "parameters": [
+          {
+            "name": "tableId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
             }
           }
-        },
+        ],
         "responses": {
           "200": {
             "description": "200 response",
@@ -435,8 +487,13 @@
             }
           }
         },
+        "security": [
+          {
+            "authorizer": []
+          }
+        ],
         "x-amazon-apigateway-integration": {
-          "httpMethod": "POST",
+          "httpMethod": "DELETE",
           "uri": "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:376129861747:function:api_handler/invocations",
           "responses": {
             "default": {
@@ -450,24 +507,24 @@
           "type": "aws_proxy"
         }
       }
-    }
-  },
-  "components": {
-    "schemas": {
-      "Empty": {
-        "title": "Empty Schema",
-        "type": "object"
-      }
     },
-    "securitySchemes": {
-      "authorizer": {
-        "type": "apiKey",
-        "name": "Authorization",
-        "in": "header",
-        "x-amazon-apigateway-authtype": "cognito_user_pools",
-        "x-amazon-apigateway-authorizer": {
-          "x-syndicate-cognito-userpool-names": ["${booking_userpool}"],
-          "type": "cognito_user_pools"
+    "components": {
+      "schemas": {
+        "Empty": {
+          "title": "Empty Schema",
+          "type": "object"
+        }
+      },
+      "securitySchemes": {
+        "authorizer": {
+          "type": "apiKey",
+          "name": "Authorization",
+          "in": "header",
+          "x-amazon-apigateway-authtype": "cognito_user_pools",
+          "x-amazon-apigateway-authorizer": {
+            "x-syndicate-cognito-userpool-names": ["${booking_userpool}"],
+            "type": "cognito_user_pools"
+          }
         }
       }
     }
